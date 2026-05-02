@@ -310,3 +310,101 @@ body {
 .list-bottom-pad {
   height: calc(80px + env(safe-area-inset-bottom));
 }
+
+/* ── Notice / Info Button ────────────────────────────────────── */
+.notice-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  font-size: 19px;
+  color: var(--text-sub);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.notice-btn:active { color: var(--purple); }
+
+/* ── Notice Modal Sheet ──────────────────────────────────────── */
+.notice-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.notice-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.55;
+}
+.notice-list li .ni {
+  flex-shrink: 0;
+  font-size: 16px;
+  margin-top: 1px;
+}
+
+/* Notice section title */
+.notice-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-sub);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  text-align: left;
+}
+.notice-section-title + .notice-list,
+.notice-section-title + .notice-steps {
+  margin-top: 0;
+}
+
+/* Numbered steps */
+.notice-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  counter-reset: step;
+}
+.notice-steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.55;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.notice-steps li:last-child { border-bottom: none; }
+.notice-steps li::before {
+  content: counter(step);
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--purple);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+/* Separate sections */
+.notice-list { margin-bottom: 24px; }
+.notice-section-title:not(:first-of-type) { margin-top: 4px; }

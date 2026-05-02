@@ -14,11 +14,36 @@
   <!-- 顶部导航 -->
   <nav class="nav">
     <span class="nav-title">🛍️ 摆摊小助手</span>
-    <a href="cart.html" class="nav-cart-btn" id="cartBtn" aria-label="购物车">
-      🛒
-      <span class="cart-badge hidden" id="cartBadge"></span>
-    </a>
+    <div style="display:flex;align-items:center;gap:2px;">
+      <button class="notice-btn" id="noticeBtn" aria-label="购物须知">ℹ️</button>
+      <a href="cart.html" class="nav-cart-btn" id="cartBtn" aria-label="购物车">
+        🛒
+        <span class="cart-badge hidden" id="cartBadge"></span>
+      </a>
+    </div>
   </nav>
+
+  <!-- 购物须知弹窗 -->
+  <div class="modal-overlay hidden" id="noticeModal">
+    <div class="modal-sheet">
+      <div class="modal-title">📋 购物须知</div>
+      <div class="notice-section-title">🪜 购买流程</div>
+      <ol class="notice-steps">
+        <li>排队等候时，提前在此页面<strong>选好商品</strong>加入购物车</li>
+        <li>点击「生成核销码」，系统实时核查库存并生成二维码</li>
+        <li>轮到您时，将<strong>二维码出示给商家</strong>扫描核销</li>
+        <li>商家确认商品数量后，完成<strong>付款</strong>即可</li>
+      </ol>
+      <div class="notice-section-title">⚠️ 注意事项</div>
+      <ul class="notice-list">
+        <li><span class="ni">🔄</span><span>商品库存<strong>实时变动</strong>，页面显示数量仅供参考</span></li>
+        <li><span class="ni">✅</span><span>点击「生成核销码」时，系统会<strong>自动拉取最新库存</strong></span></li>
+        <li><span class="ni">⚠️</span><span>若购物车中有商品已<strong>售罄</strong>，会逐一提示，请移除后重试</span></li>
+        <li><span class="ni">⚡</span><span>建议尽快完成核销，热门商品可能很快售罄</span></li>
+      </ul>
+      <button class="modal-close-btn" id="noticeCloseBtn">知道了</button>
+    </div>
+  </div>
 
   <!-- 商品列表 -->
   <main>
@@ -34,6 +59,18 @@
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/cart.js"></script>
+  <script>
+    // ── 购物须知弹窗 ────────────────────────────────────────────
+    document.getElementById('noticeBtn').addEventListener('click', () => {
+      document.getElementById('noticeModal').classList.remove('hidden');
+    });
+    document.getElementById('noticeCloseBtn').addEventListener('click', () => {
+      document.getElementById('noticeModal').classList.add('hidden');
+    });
+    document.getElementById('noticeModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+    });
+  </script>
   <script>
     // ── 商品卡片渲染 ────────────────────────────────────────────────
     function renderPrice(cents) {
