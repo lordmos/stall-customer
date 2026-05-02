@@ -1,206 +1,210 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>摆摊小助手</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
 
-<!-- 顶部导航 -->
-<nav class="nav">
-  <span class="nav-title">🛍️ 摆摊小助手</span>
-  <a href="cart.html" class="nav-cart-btn" id="cartBtn" aria-label="购物车">
-    🛒
-    <span class="cart-badge hidden" id="cartBadge"></span>
-  </a>
-</nav>
+  <!-- 顶部导航 -->
+  <nav class="nav">
+    <span class="nav-title">🛍️ 摆摊小助手</span>
+    <a href="cart.html" class="nav-cart-btn" id="cartBtn" aria-label="购物车">
+      🛒
+      <span class="cart-badge hidden" id="cartBadge"></span>
+    </a>
+  </nav>
 
-<!-- 商品列表 -->
-<main>
-  <div id="loading" class="loading">
-    <div class="spinner"></div>
-    <div>加载商品中…</div>
-  </div>
-  <div id="error" class="empty" style="display:none;"></div>
-  <div id="productGrid" class="product-grid" style="display:none;"></div>
-  <div id="empty" class="empty" style="display:none;">暂无在售商品</div>
-</main>
+  <!-- 商品列表 -->
+  <main>
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <div>加载商品中…</div>
+    </div>
+    <div id="error" class="empty" style="display:none;"></div>
+    <div id="productGrid" class="product-grid" style="display:none;"></div>
+    <div id="empty" class="empty" style="display:none;">暂无在售商品</div>
+  </main>
 
-<script src="js/config.js"></script>
-<script src="js/api.js"></script>
-<script src="js/cart.js"></script>
-<script>
-  // ── 商品卡片渲染 ────────────────────────────────────────────────
-  function renderPrice(cents) {
-    return '¥' + (cents / 100).toFixed(2);
-  }
-
-  function buildCard(product, cartQty) {
-    const isSoldOut = product.stock === 0;
-    const card = document.createElement('div');
-    card.className = 'product-card';
-    card.dataset.id = product.id;
-
-    // 图片
-    const imgWrap = document.createElement('div');
-    if (product.imageUrl) {
-      const img = document.createElement('img');
-      img.className = 'product-img';
-      img.src = product.imageUrl;
-      img.alt = product.name;
-      img.loading = 'lazy';
-      img.onerror = () => { img.replaceWith(placeholder()); };
-      imgWrap.appendChild(img);
-    } else {
-      imgWrap.appendChild(placeholder());
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/cart.js"></script>
+  <script>
+    // ── 商品卡片渲染 ────────────────────────────────────────────────
+    function renderPrice(cents) {
+      return '¥' + (cents / 100).toFixed(2);
     }
-    card.appendChild(imgWrap);
 
-    // 商品信息
-    const body = document.createElement('div');
-    body.className = 'product-body';
+    function buildCard(product, cartQty) {
+      const isSoldOut = product.stock === 0;
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      card.dataset.id = product.id;
 
-    const name = document.createElement('div');
-    name.className = 'product-name';
-    name.textContent = product.name;
-    body.appendChild(name);
+      // 图片
+      const imgWrap = document.createElement('div');
+      if (product.imageUrl) {
+        const img = document.createElement('img');
+        img.className = 'product-img';
+        img.src = product.imageUrl;
+        img.alt = product.name;
+        img.loading = 'lazy';
+        img.onerror = () => { img.replaceWith(placeholder()); };
+        imgWrap.appendChild(img);
+      } else {
+        imgWrap.appendChild(placeholder());
+      }
+      card.appendChild(imgWrap);
 
-    const price = document.createElement('div');
-    price.className = 'product-price';
-    price.textContent = renderPrice(product.price);
-    body.appendChild(price);
+      // 商品信息
+      const body = document.createElement('div');
+      body.className = 'product-body';
 
-    if (isSoldOut) {
-      const soldout = document.createElement('div');
-      soldout.className = 'soldout-label';
-      soldout.textContent = '已售罄';
-      body.appendChild(soldout);
+      const name = document.createElement('div');
+      name.className = 'product-name';
+      name.textContent = product.name;
+      body.appendChild(name);
 
-      const btn = document.createElement('button');
-      btn.className = 'add-btn';
-      btn.disabled = true;
-      btn.textContent = '已售罄';
-      body.appendChild(btn);
-    } else if (cartQty > 0) {
-      // 已加购 → 显示数量控件 + 库存余量
-      body.appendChild(buildQtyControl(product, cartQty));
+      const price = document.createElement('div');
+      price.className = 'product-price';
+      price.textContent = renderPrice(product.price);
+      body.appendChild(price);
 
-      const remaining = product.stock - cartQty;
-      const stockLeft = document.createElement('div');
-      stockLeft.className = 'product-stock';
-      stockLeft.textContent = `库存余 ${remaining}`;
-      body.appendChild(stockLeft);
-    } else {
-      const stock = document.createElement('div');
-      stock.className = 'product-stock';
-      stock.textContent = `库存 ${product.stock}`;
-      body.appendChild(stock);
+      if (isSoldOut) {
+        const soldout = document.createElement('div');
+        soldout.className = 'soldout-label';
+        soldout.textContent = '已售罄';
+        body.appendChild(soldout);
 
-      const btn = document.createElement('button');
-      btn.className = 'add-btn';
-      btn.textContent = '加入购物车';
-      btn.addEventListener('click', () => {
+        const btn = document.createElement('button');
+        btn.className = 'add-btn';
+        btn.disabled = true;
+        btn.textContent = '已售罄';
+        body.appendChild(btn);
+      } else if (cartQty > 0) {
+        // 已加购 → 显示数量控件 + 库存余量
+        body.appendChild(buildQtyControl(product, cartQty));
+
+        const remaining = product.stock - cartQty;
+        const stockLeft = document.createElement('div');
+        stockLeft.className = 'product-stock';
+        stockLeft.textContent = `库存余 ${remaining}`;
+        body.appendChild(stockLeft);
+      } else {
+        const stock = document.createElement('div');
+        stock.className = 'product-stock';
+        stock.textContent = `库存 ${product.stock}`;
+        body.appendChild(stock);
+
+        const btn = document.createElement('button');
+        btn.className = 'add-btn';
+        btn.textContent = '加入购物车';
+        btn.addEventListener('click', () => {
+          Cart.add(product, 1);
+          refreshCard(product);
+          updateBadge();
+        });
+        body.appendChild(btn);
+      }
+
+      card.appendChild(body);
+      return card;
+    }
+
+    function placeholder() {
+      const d = document.createElement('div');
+      d.className = 'product-img-placeholder';
+      d.textContent = '🖼';
+      return d;
+    }
+
+    function buildQtyControl(product, qty) {
+      const wrap = document.createElement('div');
+      wrap.className = 'qty-control';
+
+      const minus = document.createElement('button');
+      minus.className = 'qty-btn';
+      minus.textContent = '−';
+      minus.addEventListener('click', () => {
+        Cart.add(product, -1);
+        refreshCard(product);
+        updateBadge();
+      });
+
+      const num = document.createElement('span');
+      num.className = 'qty-num';
+      num.textContent = qty;
+
+      const plus = document.createElement('button');
+      plus.className = 'qty-btn';
+      plus.textContent = '+';
+      plus.disabled = qty >= product.stock;
+      plus.addEventListener('click', () => {
         Cart.add(product, 1);
         refreshCard(product);
         updateBadge();
       });
-      body.appendChild(btn);
+
+      wrap.append(minus, num, plus);
+      return wrap;
     }
 
-    card.appendChild(body);
-    return card;
-  }
-
-  function placeholder() {
-    const d = document.createElement('div');
-    d.className = 'product-img-placeholder';
-    d.textContent = '🖼';
-    return d;
-  }
-
-  function buildQtyControl(product, qty) {
-    const wrap = document.createElement('div');
-    wrap.className = 'qty-control';
-
-    const minus = document.createElement('button');
-    minus.className = 'qty-btn';
-    minus.textContent = '−';
-    minus.addEventListener('click', () => {
-      Cart.add(product, -1);
-      refreshCard(product);
-      updateBadge();
-    });
-
-    const num = document.createElement('span');
-    num.className = 'qty-num';
-    num.textContent = qty;
-
-    const plus = document.createElement('button');
-    plus.className = 'qty-btn';
-    plus.textContent = '+';
-    plus.disabled = qty >= product.stock;
-    plus.addEventListener('click', () => {
-      Cart.add(product, 1);
-      refreshCard(product);
-      updateBadge();
-    });
-
-    wrap.append(minus, num, plus);
-    return wrap;
-  }
-
-  // 刷新单张卡片（局部重绘，不重新加载网络）
-  function refreshCard(product) {
-    const cart = Cart.get();
-    const qty = cart[product.id]?.qty ?? 0;
-    const grid = document.getElementById('productGrid');
-    const old = grid.querySelector(`[data-id="${product.id}"]`);
-    if (old) old.replaceWith(buildCard(product, qty));
-  }
-
-  function updateBadge() {
-    const cart = Cart.get();
-    const count = Cart.count(cart);
-    const badge = document.getElementById('cartBadge');
-    if (count > 0) {
-      badge.textContent = count > 99 ? '99+' : count;
-      badge.classList.remove('hidden');
-    } else {
-      badge.classList.add('hidden');
-    }
-  }
-
-  // ── 初始化 ──────────────────────────────────────────────────────
-  async function init() {
-    try {
-      const data = await Api.getProducts();
-      const products = data.products || [];
-      document.getElementById('loading').style.display = 'none';
-
-      if (products.length === 0) {
-        document.getElementById('empty').style.display = 'block';
-        return;
-      }
-
+    // 刷新单张卡片（局部重绘，不重新加载网络）
+    function refreshCard(product) {
       const cart = Cart.get();
+      const qty = cart[product.id]?.qty ?? 0;
       const grid = document.getElementById('productGrid');
-      products.forEach(p => {
-        const qty = cart[p.id]?.qty ?? 0;
-        grid.appendChild(buildCard(p, qty));
-      });
-      grid.style.display = 'grid';
-      updateBadge();
-    } catch (err) {
-      document.getElementById('loading').style.display = 'none';
-      const errEl = document.getElementById('error');
-      errEl.textContent = '加载失败，请刷新重试：' + (err.message || '网络错误');
-      errEl.style.display = 'block';
+      const old = grid.querySelector(`[data-id="${product.id}"]`);
+      if (old) old.replaceWith(buildCard(product, qty));
     }
-  }
 
-  init();
-</script>
+    function updateBadge() {
+      const cart = Cart.get();
+      const count = Cart.count(cart);
+      const badge = document.getElementById('cartBadge');
+      if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    // ── 初始化 ──────────────────────────────────────────────────────
+    async function init() {
+      try {
+        const data = await Api.getProducts();
+        const products = data.products || [];
+        document.getElementById('loading').style.display = 'none';
+
+        if (products.length === 0) {
+          document.getElementById('empty').style.display = 'block';
+          return;
+        }
+
+        const cart = Cart.get();
+        const grid = document.getElementById('productGrid');
+        products.forEach(p => {
+          const qty = cart[p.id]?.qty ?? 0;
+          grid.appendChild(buildCard(p, qty));
+        });
+        grid.style.display = 'grid';
+        updateBadge();
+      } catch (err) {
+        document.getElementById('loading').style.display = 'none';
+        const errEl = document.getElementById('error');
+        errEl.textContent = '加载失败，请刷新重试：' + (err.message || '网络错误');
+        errEl.style.display = 'block';
+      }
+    }
+
+    init();
+  </script>
 </body>
+
 </html>

@@ -3,13 +3,13 @@
  * 购物车数据结构：{ [productId]: { productId, name, price, qty, stock } }
  */
 
-const CART_KEY = 'stall_cart';
+const CART_KEY = "stall_cart";
 
 const Cart = {
   /** 读取购物车 */
   get() {
     try {
-      return JSON.parse(localStorage.getItem(CART_KEY) || '{}');
+      return JSON.parse(localStorage.getItem(CART_KEY) || "{}");
     } catch {
       return {};
     }
@@ -71,12 +71,15 @@ const Cart = {
   total(cart) {
     return Object.values(cart).reduce(
       (sum, item) => sum + item.price * item.qty,
-      0
+      0,
     );
   },
 
   /** 将购物车转为核销二维码的 items 数组 */
   toItems(cart) {
-    return Object.values(cart).map(({ productId, qty }) => ({ productId, qty }));
+    return Object.values(cart).map(({ productId, qty }) => ({
+      productId,
+      qty,
+    }));
   },
 };
