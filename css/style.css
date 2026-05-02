@@ -271,11 +271,16 @@ body {
 .modal-sheet {
   background: var(--card-bg);
   border-radius: 16px 16px 0 0;
-  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  padding: 24px 1rem calc(24px + env(safe-area-inset-bottom));
   width: 100%;
   max-width: 480px;
-  text-align: center;
+  text-align: left;
+  max-height: 85dvh;
+  overflow-y: auto;
 }
+.modal-sheet .modal-title,
+.modal-sheet .modal-hint,
+.modal-sheet .modal-close-btn { text-align: center; }
 .modal-title {
   font-size: 17px; font-weight: 700;
   margin-bottom: 6px;
@@ -314,18 +319,18 @@ body {
 /* ── Notice / Info Button ────────────────────────────────────── */
 .notice-btn {
   background: none;
-  border: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   cursor: pointer;
-  padding: 8px;
-  font-size: 19px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-sub);
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  line-height: 1.4;
+  white-space: nowrap;
   flex-shrink: 0;
 }
-.notice-btn:active { color: var(--purple); }
+.notice-btn:active { color: var(--purple); border-color: var(--purple); }
 
 /* ── Notice Modal Sheet ──────────────────────────────────────── */
 .notice-list {
