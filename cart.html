@@ -122,11 +122,15 @@
         row.className = 'cart-item';
 
         const info = document.createElement('div');
-        info.className = 'cart-item-info';
-        info.innerHTML = `
-        <div class="cart-item-name">${escHtml(item.name)}</div>
-        <div class="cart-item-price">${renderPrice(item.price)} / 件</div>
-      `;
+        info.className = 'cart-item-name';
+        info.textContent = item.name;
+
+        const meta = document.createElement('div');
+        meta.className = 'cart-item-meta';
+
+        const price = document.createElement('div');
+        price.className = 'cart-item-price';
+        price.textContent = `${renderPrice(item.price)} / 件`;
 
         // 数量控件
         const qtyWrap = document.createElement('div');
@@ -162,7 +166,8 @@
         subtotal.className = 'cart-item-subtotal';
         subtotal.textContent = renderPrice(item.price * item.qty);
 
-        row.append(info, qtyWrap, subtotal);
+        meta.append(price, qtyWrap, subtotal);
+        row.append(info, meta);
         list.appendChild(row);
       });
 
