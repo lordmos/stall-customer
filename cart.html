@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>购物车 — 摆摊小助手</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- qrcodejs：纯前端二维码生成，无需服务端 -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<nav class="nav">
+  <a href="index.html" class="nav-cart-btn" aria-label="返回">‹</a>
+  <span class="nav-title">购物车</span>
+  <span style="width:40px;"></span><!-- 占位，保持标题居中 -->
+</nav>
+
+<!-- 购物车列表 -->
+<main>
+  <div id="cartList" class="cart-list"></div>
+  <div id="cartEmpty" class="cart-empty" style="display:none;">
+    购物车是空的，<a href="index.html">去逛逛</a>
+  </div>
+  <div class="list-bottom-pad"></div>
+</main>
+
+<!-- 底部结算栏 -->
+<footer class="cart-footer" id="cartFooter" style="display:none;">
+  <div>
+    <div class="cart-total-label">合计</div>
+    <div class="cart-total-amount" id="cartTotal">¥0.00</div>
+  </div>
+  <button class="gen-qr-btn" id="genQrBtn">生成核销码</button>
+</footer>
+
+<!-- 二维码弹窗 -->
+<div class="modal-overlay hidden" id="qrModal">
+  <div class="modal-sheet">
+    <div class="modal-title">核销二维码</div>
+    <div class="modal-hint">将此码出示给商家扫描完成核销</div>
+    <div id="qrcode-container">
+      <div id="qrcode"></div>
+    </div>
+    <div class="modal-hint" style="margin-top:0;margin-bottom:16px;">
+      核销成功后请手动清空购物车
+    </div>
+    <button class="modal-close-btn" id="clearAndCloseBtn">核销成功，清空购物车</button>
+    <button class="modal-close-btn" style="margin-top:8px;background:transparent;color:var(--text-sub);" id="justCloseBtn">关闭（不清空）</button>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/cart.js"></script>
+<script>
+  let qrInstance = null;
+
+  function renderPrice(cents) {
+    return '¥' + (cents / 100).toFixed(2);
+  }
+
+  // ── 渲染购物车 ──────────────────────────────────────────────────
+  function render() {
+    const cart = Cart.get();
+    const items = Object.values(cart);
+    const list = document.getElementById('cartList');
+    const empty = document.getElementById('cartEmpty');
+    const footer = document.getElementById('cartFooter');
+    const totalEl = document.getElementById('cartTotal');
+
+    list.innerHTML = '';
+
+    if (items.length === 0) {
+      empty.style.display = 'block';
+      footer.style.display = 'none';
+      return;
+    }
+
+    empty.style.display = 'none';
+    footer.style.display = 'flex';
+
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'cart-item';
+
+      const info = document.createElement('div');
+      info.className = 'cart-item-info';
+      info.innerHTML = `
+        <div class="cart-item-name">${escHtml(item.name)}</div>
+        <div class="cart-item-price">${renderPrice(item.price)} / 件</div>
+      `;
+
+      // 数量控件
+      const qtyWrap = document.createElement('div');
+      qtyWrap.className = 'qty-control';
+
+      const minus = document.createElement('button');
+      minus.className = 'qty-btn';
+      minus.textContent = '−';
+      minus.addEventListener('click', () => {
+        // qty - 1；若降到 0 自动删除
+        const product = { id: item.productId, name: item.name, price: item.price, stock: item.stock };
+        Cart.add(product, -1);
+        render();
+      });
+
+      const num = document.createElement('span');
+      num.className = 'qty-num';
+      num.textContent = item.qty;
+
+      const plus = document.createElement('button');
+      plus.className = 'qty-btn';
+      plus.textContent = '+';
+      plus.disabled = item.qty >= item.stock;
+      plus.addEventListener('click', () => {
+        const product = { id: item.productId, name: item.name, price: item.price, stock: item.stock };
+        Cart.add(product, 1);
+        render();
+      });
+
+      qtyWrap.append(minus, num, plus);
+
+      const subtotal = document.createElement('div');
+      subtotal.className = 'cart-item-subtotal';
+      subtotal.textContent = renderPrice(item.price * item.qty);
+
+      row.append(info, qtyWrap, subtotal);
+      list.appendChild(row);
+    });
+
+    totalEl.textContent = renderPrice(Cart.total(cart));
+  }
+
+  // ── 生成二维码 ──────────────────────────────────────────────────
+  document.getElementById('genQrBtn').addEventListener('click', () => {
+    const cart = Cart.get();
+    const items = Cart.toItems(cart);
+    if (items.length === 0) return;
+
+    const payload = JSON.stringify({ items });
+
+    const container = document.getElementById('qrcode');
+    container.innerHTML = ''; // 清空旧的
+
+    qrInstance = new QRCode(container, {
+      text: payload,
+      width: 220,
+      height: 220,
+      colorDark: '#1a1a1a',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M,
+    });
+
+    document.getElementById('qrModal').classList.remove('hidden');
+  });
+
+  // 清空购物车并关闭
+  document.getElementById('clearAndCloseBtn').addEventListener('click', () => {
+    Cart.clear();
+    document.getElementById('qrModal').classList.add('hidden');
+    render();
+  });
+
+  // 仅关闭弹窗
+  document.getElementById('justCloseBtn').addEventListener('click', () => {
+    document.getElementById('qrModal').classList.add('hidden');
+  });
+
+  // 点击遮罩关闭
+  document.getElementById('qrModal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      document.getElementById('qrModal').classList.add('hidden');
+    }
+  });
+
+  // ── 工具函数 ────────────────────────────────────────────────────
+  function escHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── 初始化 ──────────────────────────────────────────────────────
+  render();
+</script>
+</body>
+</html>
