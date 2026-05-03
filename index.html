@@ -46,15 +46,26 @@
   </div>
 
   <!-- 商品列表 -->
-  <main>
-    <div id="loading" class="loading">
-      <div class="spinner"></div>
-      <div>加载商品中…</div>
+  <main class="main-layout">
+    <!-- 左侧分类栏 -->
+    <nav class="cat-sidebar" id="catSidebar" aria-label="商品分类"></nav>
+
+    <!-- 右侧商品区 -->
+    <div class="main-content" id="mainContent">
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div>加载商品中…</div>
+      </div>
+      <div id="error" class="empty" style="display:none;"></div>
+      <div id="productList" class="product-list" style="display:none;"></div>
+      <div id="empty" class="empty" style="display:none;">暂无在售商品</div>
     </div>
-    <div id="error" class="empty" style="display:none;"></div>
-    <div id="productGrid" class="product-grid" style="display:none;"></div>
-    <div id="empty" class="empty" style="display:none;">暂无在售商品</div>
   </main>
+
+  <!-- 大图预览 -->
+  <div class="lightbox hidden" id="lightbox">
+    <img id="lightboxImg" src="" alt="" />
+  </div>
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
@@ -70,92 +81,62 @@
     document.getElementById('noticeModal').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
     });
+
+    // ── 大图预览 ─────────────────────────────────────────────────
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    let _lightboxOpenAt = 0;
+
+    function openLightbox(src, alt) {
+      lightboxImg.src = src;
+      lightboxImg.alt = alt;
+      lightbox.classList.remove('hidden');
+      _lightboxOpenAt = Date.now();
+    }
+    // 防止 iOS ghost-click：开启后 350ms 内忽略关闭事件
+    lightbox.addEventListener('click', () => {
+      if (Date.now() - _lightboxOpenAt > 350) {
+        lightbox.classList.add('hidden');
+      }
+    });
   </script>
   <script>
-    // ── 商品卡片渲染 ────────────────────────────────────────────────
+    // ── 分类逻辑 ─────────────────────────────────────────────────
+    const CATEGORIES = ['本子', '制品', '无料'];
+    const CATEGORY_ICONS = { '本子': '📔', '制品': '🎁', '无料': '🎀' };
+
+    function getCategory(name) {
+      if (name.includes('无料')) return '无料';
+      if (name.includes('《') || name.includes('》')) return '本子';
+      return '制品';
+    }
+
+    // ── 工具函数 ─────────────────────────────────────────────────
     function renderPrice(cents) {
       return '¥' + (cents / 100).toFixed(2);
     }
 
-    function buildCard(product, cartQty) {
-      const isSoldOut = product.stock === 0;
-      const card = document.createElement('div');
-      card.className = 'product-card';
-      card.dataset.id = product.id;
-
-      // 图片
-      const imgWrap = document.createElement('div');
+    function buildThumb(product) {
       if (product.imageUrl) {
         const img = document.createElement('img');
-        img.className = 'product-img';
+        img.className = 'product-thumb';
         img.src = product.imageUrl;
         img.alt = product.name;
         img.loading = 'lazy';
-        img.onerror = () => { img.replaceWith(placeholder()); };
-        imgWrap.appendChild(img);
-      } else {
-        imgWrap.appendChild(placeholder());
-      }
-      card.appendChild(imgWrap);
-
-      // 商品信息
-      const body = document.createElement('div');
-      body.className = 'product-body';
-
-      const name = document.createElement('div');
-      name.className = 'product-name';
-      name.textContent = product.name;
-      body.appendChild(name);
-
-      const price = document.createElement('div');
-      price.className = 'product-price';
-      price.textContent = renderPrice(product.price);
-      body.appendChild(price);
-
-      if (isSoldOut) {
-        const soldout = document.createElement('div');
-        soldout.className = 'soldout-label';
-        soldout.textContent = '已售罄';
-        body.appendChild(soldout);
-
-        const btn = document.createElement('button');
-        btn.className = 'add-btn';
-        btn.disabled = true;
-        btn.textContent = '已售罄';
-        body.appendChild(btn);
-      } else if (cartQty > 0) {
-        // 已加购 → 显示数量控件 + 库存余量
-        body.appendChild(buildQtyControl(product, cartQty));
-
-        const remaining = product.stock - cartQty;
-        const stockLeft = document.createElement('div');
-        stockLeft.className = 'product-stock';
-        stockLeft.textContent = `库存余 ${remaining}`;
-        body.appendChild(stockLeft);
-      } else {
-        const stock = document.createElement('div');
-        stock.className = 'product-stock';
-        stock.textContent = `库存 ${product.stock}`;
-        body.appendChild(stock);
-
-        const btn = document.createElement('button');
-        btn.className = 'add-btn';
-        btn.textContent = '加入购物车';
-        btn.addEventListener('click', () => {
-          Cart.add(product, 1);
-          refreshCard(product);
-          updateBadge();
+        img.style.cursor = 'zoom-in';
+        img.onerror = () => img.replaceWith(buildThumbPlaceholder());
+        img.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openLightbox(product.imageUrl, product.name);
         });
-        body.appendChild(btn);
+        return img;
       }
-
-      card.appendChild(body);
-      return card;
+      return buildThumbPlaceholder();
     }
 
-    function placeholder() {
+    function buildThumbPlaceholder() {
       const d = document.createElement('div');
-      d.className = 'product-img-placeholder';
+      d.className = 'product-thumb-placeholder';
       d.textContent = '🖼';
       return d;
     }
@@ -167,7 +148,8 @@
       const minus = document.createElement('button');
       minus.className = 'qty-btn';
       minus.textContent = '−';
-      minus.addEventListener('click', () => {
+      minus.addEventListener('click', (e) => {
+        e.stopPropagation();
         Cart.add(product, -1);
         refreshCard(product);
         updateBadge();
@@ -181,7 +163,8 @@
       plus.className = 'qty-btn';
       plus.textContent = '+';
       plus.disabled = qty >= product.stock;
-      plus.addEventListener('click', () => {
+      plus.addEventListener('click', (e) => {
+        e.stopPropagation();
         Cart.add(product, 1);
         refreshCard(product);
         updateBadge();
@@ -191,12 +174,94 @@
       return wrap;
     }
 
-    // 刷新单张卡片（局部重绘，不重新加载网络）
+    function buildCard(product, cartQty) {
+      const isSoldOut = product.stock === 0;
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      card.dataset.id = product.id;
+
+      // 缩略图（点击缩略图打开大图，在 buildThumb 内绑定）
+      card.appendChild(buildThumb(product));
+
+      // 右侧内容
+      const body = document.createElement('div');
+      body.className = 'product-body';
+
+      const name = document.createElement('div');
+      name.className = 'product-name';
+      name.textContent = product.name;
+      body.appendChild(name);
+
+      if (product.description) {
+        const desc = document.createElement('div');
+        desc.className = 'product-desc';
+        desc.textContent = product.description;
+        body.appendChild(desc);
+      }
+
+      // 底部：价格 + 操作
+      const footer = document.createElement('div');
+      footer.className = 'product-footer';
+
+      const priceCol = document.createElement('div');
+      priceCol.className = 'product-price-col';
+
+      const price = document.createElement('div');
+      price.className = 'product-price';
+      price.textContent = renderPrice(product.price);
+      priceCol.appendChild(price);
+
+      if (isSoldOut) {
+        const soldout = document.createElement('div');
+        soldout.className = 'soldout-label';
+        soldout.textContent = '已售罄';
+        priceCol.appendChild(soldout);
+        footer.appendChild(priceCol);
+
+        const btn = document.createElement('button');
+        btn.className = 'add-btn';
+        btn.disabled = true;
+        btn.textContent = '已售罄';
+        btn.addEventListener('click', (e) => e.stopPropagation());
+        footer.appendChild(btn);
+      } else if (cartQty > 0) {
+        const remaining = product.stock - cartQty;
+        const stockEl = document.createElement('div');
+        stockEl.className = 'product-stock';
+        stockEl.textContent = `库存余 ${remaining}`;
+        priceCol.appendChild(stockEl);
+        footer.appendChild(priceCol);
+        footer.appendChild(buildQtyControl(product, cartQty));
+      } else {
+        const stockEl = document.createElement('div');
+        stockEl.className = 'product-stock';
+        stockEl.textContent = `库存 ${product.stock}`;
+        priceCol.appendChild(stockEl);
+        footer.appendChild(priceCol);
+
+        const btn = document.createElement('button');
+        btn.className = 'add-btn';
+        btn.textContent = '加购';
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          Cart.add(product, 1);
+          refreshCard(product);
+          updateBadge();
+        });
+        footer.appendChild(btn);
+      }
+
+      body.appendChild(footer);
+      card.appendChild(body);
+      return card;
+    }
+
+    // 局部刷新单张卡片
     function refreshCard(product) {
       const cart = Cart.get();
       const qty = cart[product.id]?.qty ?? 0;
-      const grid = document.getElementById('productGrid');
-      const old = grid.querySelector(`[data-id="${product.id}"]`);
+      const list = document.getElementById('productList');
+      const old = list.querySelector(`[data-id="${product.id}"]`);
       if (old) old.replaceWith(buildCard(product, qty));
     }
 
@@ -224,14 +289,85 @@
           return;
         }
 
-        const cart = Cart.get();
-        const grid = document.getElementById('productGrid');
-        products.forEach(p => {
-          const qty = cart[p.id]?.qty ?? 0;
-          grid.appendChild(buildCard(p, qty));
+        // 分类 + 类内按 updatedAt 升序排列
+        const groups = { '本子': [], '制品': [], '无料': [] };
+        products.forEach(p => groups[getCategory(p.name)].push(p));
+        CATEGORIES.forEach(cat => {
+          groups[cat].sort((a, b) => {
+            const ta = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+            const tb = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+            return ta - tb;
+          });
         });
-        grid.style.display = 'grid';
+
+        const cart = Cart.get();
+        const list = document.getElementById('productList');
+        const sidebar = document.getElementById('catSidebar');
+        const content = document.getElementById('mainContent');
+        const activeCats = CATEGORIES.filter(c => groups[c].length > 0);
+
+        // 渲染左侧分类栏
+        activeCats.forEach((cat, i) => {
+          const tab = document.createElement('div');
+          tab.className = 'cat-tab' + (i === 0 ? ' active' : '');
+          tab.dataset.cat = cat;
+          tab.innerHTML = `<span class="cat-tab-icon">${CATEGORY_ICONS[cat]}</span><span>${cat}</span>`;
+          tab.addEventListener('click', () => scrollToCategory(cat));
+          sidebar.appendChild(tab);
+        });
+
+        // 渲染右侧商品区
+        activeCats.forEach(cat => {
+          const section = document.createElement('div');
+          section.className = 'category-section';
+          section.dataset.cat = cat;
+
+          const header = document.createElement('div');
+          header.className = 'category-header';
+          header.textContent = `${CATEGORY_ICONS[cat]} ${cat}`;
+          section.appendChild(header);
+
+          groups[cat].forEach(p => {
+            const qty = cart[p.id]?.qty ?? 0;
+            section.appendChild(buildCard(p, qty));
+          });
+
+          list.appendChild(section);
+        });
+
+        list.style.display = 'block';
         updateBadge();
+
+        // 点击分类跳转
+        function scrollToCategory(cat) {
+          const target = list.querySelector(`.category-section[data-cat="${cat}"]`);
+          if (target) {
+            content.scrollTo({ top: target.offsetTop, behavior: 'smooth' });
+          }
+          setActiveTab(cat);
+        }
+
+        function setActiveTab(cat) {
+          sidebar.querySelectorAll('.cat-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.cat === cat);
+          });
+        }
+
+        // 滚动时自动高亮对应分类
+        const sections = () => list.querySelectorAll('.category-section[data-cat]');
+        content.addEventListener('scroll', () => {
+          const scrollTop = content.scrollTop;
+          let current = activeCats[0];
+          sections().forEach(sec => {
+            if (sec.offsetTop <= scrollTop + 60) current = sec.dataset.cat;
+          });
+          setActiveTab(current);
+          // 让对应 tab 滚入视野
+          const activeTab = sidebar.querySelector(`.cat-tab[data-cat="${current}"]`);
+          if (activeTab) {
+            activeTab.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+        }, { passive: true });
       } catch (err) {
         document.getElementById('loading').style.display = 'none';
         const errEl = document.getElementById('error');
