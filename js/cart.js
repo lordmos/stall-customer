@@ -36,6 +36,7 @@ const Cart = {
         price: product.price,
         qty: capped,
         stock: product.stock,
+        imageUrl: product.imageUrl || "",
       };
     }
     this._save(cart);

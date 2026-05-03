@@ -36,7 +36,6 @@
         <li><span class="ni">🔄</span><span>商品库存<strong>实时变动</strong>，页面显示数量仅供参考</span></li>
         <li><span class="ni">✅</span><span>点击「生成核销码」时，系统会<strong>自动拉取最新库存</strong></span></li>
         <li><span class="ni">⚠️</span><span>若购物车中有商品已<strong>售罄</strong>，会逐一提示，请移除后重试</span></li>
-        <li><span class="ni">⚡</span><span>建议尽快完成核销，热门商品可能很快售罄</span></li>
       </ul>
       <button class="modal-close-btn" id="noticeCloseBtn">知道了</button>
     </div>
@@ -124,18 +123,43 @@
         const row = document.createElement('div');
         row.className = 'cart-item';
 
+        // 商品缩略图
+        if (item.imageUrl) {
+          const thumb = document.createElement('img');
+          thumb.className = 'cart-item-thumb';
+          thumb.src = item.imageUrl;
+          thumb.alt = item.name;
+          thumb.loading = 'lazy';
+          row.appendChild(thumb);
+        } else {
+          const placeholder = document.createElement('div');
+          placeholder.className = 'cart-item-thumb cart-item-thumb--empty';
+          placeholder.textContent = '🖼';
+          row.appendChild(placeholder);
+        }
+
+        // 中列：商品名 + 单价
+        const middle = document.createElement('div');
+        middle.className = 'cart-item-middle';
+
         const info = document.createElement('div');
         info.className = 'cart-item-name';
         info.textContent = item.name;
-
-        const meta = document.createElement('div');
-        meta.className = 'cart-item-meta';
 
         const price = document.createElement('div');
         price.className = 'cart-item-price';
         price.textContent = `${renderPrice(item.price)} / 件`;
 
-        // 数量控件
+        middle.append(info, price);
+
+        // 右列：小计 + 数量控件
+        const rightCol = document.createElement('div');
+        rightCol.className = 'cart-item-right';
+
+        const subtotal = document.createElement('div');
+        subtotal.className = 'cart-item-subtotal';
+        subtotal.textContent = renderPrice(item.price * item.qty);
+
         const qtyWrap = document.createElement('div');
         qtyWrap.className = 'qty-control';
 
@@ -143,8 +167,7 @@
         minus.className = 'qty-btn';
         minus.textContent = '−';
         minus.addEventListener('click', () => {
-          // qty - 1；若降到 0 自动删除
-          const product = { id: item.productId, name: item.name, price: item.price, stock: item.stock };
+          const product = { id: item.productId, name: item.name, price: item.price, stock: item.stock, imageUrl: item.imageUrl };
           Cart.add(product, -1);
           render();
         });
@@ -158,19 +181,14 @@
         plus.textContent = '+';
         plus.disabled = item.qty >= item.stock;
         plus.addEventListener('click', () => {
-          const product = { id: item.productId, name: item.name, price: item.price, stock: item.stock };
+          const product = { id: item.productId, name: item.name, price: item.price, stock: item.stock, imageUrl: item.imageUrl };
           Cart.add(product, 1);
           render();
         });
 
         qtyWrap.append(minus, num, plus);
-
-        const subtotal = document.createElement('div');
-        subtotal.className = 'cart-item-subtotal';
-        subtotal.textContent = renderPrice(item.price * item.qty);
-
-        meta.append(price, qtyWrap, subtotal);
-        row.append(info, meta);
+        rightCol.append(subtotal, qtyWrap);
+        row.append(middle, rightCol);
         list.appendChild(row);
       });
 

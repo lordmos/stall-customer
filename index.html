@@ -39,7 +39,6 @@
         <li><span class="ni">🔄</span><span>商品库存<strong>实时变动</strong>，页面显示数量仅供参考</span></li>
         <li><span class="ni">✅</span><span>点击「生成核销码」时，系统会<strong>自动拉取最新库存</strong></span></li>
         <li><span class="ni">⚠️</span><span>若购物车中有商品已<strong>售罄</strong>，会逐一提示，请移除后重试</span></li>
-        <li><span class="ni">⚡</span><span>建议尽快完成核销，热门商品可能很快售罄</span></li>
       </ul>
       <button class="modal-close-btn" id="noticeCloseBtn">知道了</button>
     </div>
@@ -62,11 +61,6 @@
     </div>
   </main>
 
-  <!-- 大图预览 -->
-  <div class="lightbox hidden" id="lightbox">
-    <img id="lightboxImg" src="" alt="" />
-  </div>
-
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/cart.js"></script>
@@ -82,23 +76,7 @@
       if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
     });
 
-    // ── 大图预览 ─────────────────────────────────────────────────
-    const lightbox = document.getElementById('lightbox');
-    const lightboxImg = document.getElementById('lightboxImg');
-    let _lightboxOpenAt = 0;
 
-    function openLightbox(src, alt) {
-      lightboxImg.src = src;
-      lightboxImg.alt = alt;
-      lightbox.classList.remove('hidden');
-      _lightboxOpenAt = Date.now();
-    }
-    // 防止 iOS ghost-click：开启后 350ms 内忽略关闭事件
-    lightbox.addEventListener('click', () => {
-      if (Date.now() - _lightboxOpenAt > 350) {
-        lightbox.classList.add('hidden');
-      }
-    });
   </script>
   <script>
     // ── 分类逻辑 ─────────────────────────────────────────────────
@@ -123,12 +101,7 @@
         img.src = product.imageUrl;
         img.alt = product.name;
         img.loading = 'lazy';
-        img.style.cursor = 'zoom-in';
         img.onerror = () => img.replaceWith(buildThumbPlaceholder());
-        img.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openLightbox(product.imageUrl, product.name);
-        });
         return img;
       }
       return buildThumbPlaceholder();
